@@ -4,37 +4,42 @@
 		<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
 		<script src="jquery.shoutcast.js"></script>
 		<script>
-			var efn = $.SHOUTcast({
+			var firstRun = function(data){
+				$('#station').text(data.servertitle);
+				if(data.serverurl){
+					$('#station').wrap('<a href="'+data.serverurl+'"></a>');
+				}
+
+				$('#song').text(data.songtitle);
+
+				this.playStream('#player');
+
+				setTimeout(function(){
+					efn.startStats();
+				}, 2*60*1000);
+			},
+			efn = $.SHOUTcast({
 				host: '96.47.231.100',
 				port: 8000,
 				stream: 2,
 				dataType: 'xml',
 				xmlProxy: 'http://tron/SHOUTCast_XML2JSONP.php?url=%s&callback=?',
-				statsInterval: 2*60*1000
-			});
-
-			$(function(){
-				efn.stats(function(data){
-					$('#station').text(data.servertitle);
-					if(data.serverurl){
-						$('#station').wrap('<a href="'+data.serverurl+'"></a>');
+				statsInterval: 2*60*1000,
+				stats: function(data){
+					if(!firstRun.ran){
+						firstRun.call(this, data);
+						firstRun.ran = true;
 					}
 
 					$('#song').text(data.songtitle);
+				}
+			});
 
-					this.playStream('#player');
-
-					setTimeout(function(){
-						efn.startStats(function(data){
-							$('#song').text(data.songtitle);
-						});
-					}, 2*60*1000);
-				});
+			$(function(){
+				efn.stats();
 
 				$('#resetSongTitle').click(function(){
-					efn.stopStats().startStats(function(data){
-						$('#song').text(data.songtitle);
-					});
+					efn.stopStats().startStats();
 				});
 
 				$('#reloadStream').click(function(){
