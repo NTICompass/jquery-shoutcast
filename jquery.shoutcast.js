@@ -10,13 +10,20 @@
     this.host = opt.host;
     this.port = parseInt(opt.port,10)||8000;
     this.stream = parseInt(opt.stream,10)||1;
+    this.dataType = (opt.dataType || 'json').toLowerCase();
+    if(this.dataType === 'xml'){
+		this.xmlProxy = opt.xmlProxy;
+	}
 
     this._statsinterval = null;
     this._playedinterval = null;
     this._stats = opt.stats || function(){};
     this._played = opt.played || function(){};
+
+    this._audioElement = document.createElement('audio');
+    this._canPlayAudio = !!this._audioElement.canPlayType;
   }
-  
+
   /**
    * Get attributes
    * @param  {string} k the key to get e.g. songtitle [optional] - if theres no key all attributes will be returned
@@ -28,12 +35,58 @@
   };
 
   /**
+   * Can your browser play the SHOUTCast stram?
+   * @param {none}
+   * @return {boolean}
+   */
+  SHOUTcast.prototype.canPlayStream = function(){
+    return !!(this._canPlayAudio && this._audioElement.canPlayType(this.get('content')+';').replace(/no/, ''));
+  };
+
+  /**
+   * Make the browser play the SHOUTCast stream
+   * @param {string} jQuery selecter to append <audio> tag to
+   * @return {SHOUTcast} return this for chaining.
+   */
+  SHOUTcast.prototype.playStream = function(container){
+    if(this.onAir() && this.canPlayStream()){
+		var steamURL = 'http://'+this.host+':'+this.port+this.get('streampath');
+
+		if($('audio', container).length){
+			$('audio', container).prop('src', steamURL);
+		}
+		else{
+			$(container).append('<audio controls src="'+steamURL+'"></audio>');
+		}
+	}
+
+	return this;
+  };
+
+  /**
+   * Destroy the SHOUTCast <audio> tag
+   * @param {string} jQuery selecter to append <audio> tag to
+   * @return {SHOUTcast} return this for chaining.
+   */
+  SHOUTcast.prototype.stopStream = function(container){
+    $('audio', container).prop('src', '');
+
+	return this;
+  };
+
+  /**
    * Get the shoutcast stats using /stats?sid=
    * @param  {Function} fn the callback function, this will be passed the stats on success
    * @return {SHOUTcast}      return this for chaining.
    */
   SHOUTcast.prototype.stats = function(fn){
-    var that = this,r,url = 'http://'+this.host+':'+this.port+'/stats?sid='+this.stream+'&json=1';
+    var that = this, r,
+		url = 'http://'+this.host+':'+this.port+'/stats?sid='+this.stream+(this.dataType === 'json' ? '&json=1' : '');
+
+	if(this.dataType === 'xml'){
+		url = this.xmlProxy.replace('%s', encodeURIComponent(url));
+	}
+
     fn = fn || function(){};
     r = $.ajax({
       url : url,
@@ -46,7 +99,7 @@
           return;
         }
         //2 = on air, 1 = no source
-        that._status = data.streamstatus === 1 ? 2 : 1;
+        that._status = parseInt(data.streamstatus, 10) === 1 ? 2 : 1;
 
         that._attr = data;
         that._attr.status = that.getStatusAsText();
@@ -62,22 +115,27 @@
     });
     return this;
   };
-  
+
   /**
    * Get the played information from /played?sid=
    * @param  {Function} fn the callback function, will be passed an array of objects on success
    * @return {SHOUTcast}      return this for chaining
    */
   SHOUTcast.prototype.played = function(fn){
-    var that = this, url='http://'+this.host+':'+this.port+'/played?sid='+this.stream+'&type=json';
-    
+    var that = this,
+		url='http://'+this.host+':'+this.port+'/played?sid='+this.stream+(this.dataType === 'json' ? '&json=1' : '');
+
+	if(this.dataType === 'xml'){
+		url = this.xmlProxy.replace('%s', encodeURIComponent(url));
+	}
+
     $.ajax({
       url : url,
       dataType : 'jsonp',
       timeout : 2000,
       success : function(data){
         if(!data instanceof Array){
-         return; 
+         return;
         }
         fn && fn.call(that,data);
         that._played(data);
@@ -85,7 +143,7 @@
     });
     return this;
   };
-  
+
   /**
    * Start updating using the stats method
    * @return {SHOUTcast} return this for chaining
@@ -105,7 +163,7 @@
     this._statsinterval && clearInterval(this._statsinterval);
     return this;
   };
-  
+
   /**
    * Start updating played information
    * @return {SHOUTcast} this for chaining
