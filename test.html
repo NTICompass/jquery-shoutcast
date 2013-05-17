@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+		<script src="jquery.shoutcast.js"></script>
+		<script>
+			var efn = $.SHOUTcast({
+				host: '96.47.231.100',
+				port: 8000,
+				stream: 2,
+				dataType: 'xml',
+				xmlProxy: 'http://tron/SHOUTCast_XML2JSONP.php?url=%s&callback=?',
+				statsInterval: 2*60*1000
+			});
+
+			$(function(){
+				efn.stats(function(data){
+					$('#station').text(data.servertitle);
+					if(data.serverurl){
+						$('#station').wrap('<a href="'+data.serverurl+'"></a>');
+					}
+
+					$('#song').text(data.songtitle);
+
+					this.playStream('#player');
+
+					setTimeout(function(){
+						efn.startStats(function(data){
+							$('#song').text(data.songtitle);
+						});
+					}, 2*60*1000);
+				});
+
+				$('#resetSongTitle').click(function(){
+					efn.stopStats().startStats(function(data){
+						$('#song').text(data.songtitle);
+					});
+				});
+
+				$('#reloadStream').click(function(){
+					efn.stopStream('#player').playStream('#player');
+				});
+			});
+		</script>
+	</head>
+	<body>
+		<div id="player">
+			<button type="button" id="reloadStream">reload stream</button>
+		</div>
+		<div id="info">
+			<p>Station: <strong id="station"></strong></p>
+			<p>Song: <strong id="song"></strong> <button type="button" id="resetSongTitle">refresh title</button></p>
+		</div>
+	</body>
+</html>
