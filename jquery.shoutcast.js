@@ -10,10 +10,16 @@
     this.host = opt.host;
     this.port = parseInt(opt.port,10)||8000;
     this.stream = parseInt(opt.stream,10)||1;
+
     this.dataType = (opt.dataType || 'json').toLowerCase();
     if(this.dataType === 'xml'){
 		this.xmlProxy = opt.xmlProxy;
 	}
+    if(this.dataType === 'html'){
+		this.htmlProxy = opt.htmlProxy;
+	}
+
+	this.streamProxy = opt.streamProxy || null;
 
     this._statsinterval = null;
     this._playedinterval = null;
@@ -52,6 +58,11 @@
     if(this.onAir() && this.canPlayStream()){
 		var steamURL = 'http://'+this.host+':'+this.port+this.get('streampath');
 
+		if(this.streamProxy !== null){
+			steamURL = this.streamProxy.replace('%s', encodeURIComponent(steamURL));
+			steamURL = steamURL.replace('%t', encodeURIComponent(this.get('content')));
+		}
+
 		if($('audio', container).length){
 			$('audio', container).prop('src', steamURL);
 		}
@@ -81,10 +92,16 @@
    */
   SHOUTcast.prototype.stats = function(fn){
     var that = this, r,
-		url = 'http://'+this.host+':'+this.port+'/stats?sid='+this.stream+(this.dataType === 'json' ? '&json=1' : '');
+		url = 'http://'+this.host+':'+this.port
+			+(this.dataType !== 'html' ? '/stats' : '/')
+			+(this.stream > 0 ? ('?sid='+this.stream) : '?')
+			+(this.dataType === 'json' ? '&json=1' : '');
 
 	if(this.dataType === 'xml'){
 		url = this.xmlProxy.replace('%s', encodeURIComponent(url));
+	}
+	if(this.dataType === 'html'){
+		url = this.htmlProxy.replace('%s', encodeURIComponent(url.replace(/\?$/, '')));
 	}
 
     fn = fn || function(){};
@@ -123,10 +140,16 @@
    */
   SHOUTcast.prototype.played = function(fn){
     var that = this,
-		url='http://'+this.host+':'+this.port+'/played?sid='+this.stream+(this.dataType === 'json' ? '&json=1' : '');
+		url='http://'+this.host+':'+this.port+'/played'
+			+(this.stream > 0 ? ('?sid='+this.stream) : '?')
+			+(this.dataType === 'json' ? '&json=1' : '');
+
 
 	if(this.dataType === 'xml'){
 		url = this.xmlProxy.replace('%s', encodeURIComponent(url));
+	}
+	if(this.dataType === 'html'){
+		url = this.htmlProxy.replace('%s', encodeURIComponent(url.replace(/\?$/, '')));
 	}
 
     $.ajax({
