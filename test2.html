@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+		<script src="jquery.shoutcast.js"></script>
+		<script>
+			var firstRun = function(data){
+				$('#station').text(data.servertitle);
+				if(data.serverurl){
+					$('#station').wrap('<a href="'+data.serverurl+'"></a>');
+				}
+
+				$('#song').text(data.songtitle);
+
+				this.playStream('#player');
+
+				setTimeout(function(){
+					efn.startStats();
+				}, 2*60*1000);
+			},
+			efn = $.SHOUTcast({
+				host: 's1.voscast.com',
+				port: 7492,
+				stream: -1,
+				dataType: 'html',
+				htmlProxy: 'http://tron/SHOUTCast_HTML2JSONP.php?url=%s&callback=?',
+				streamProxy: 'http://tron/SHOUTCast_Stream.php?url=%s&type=%t',
+				statsInterval: 2*60*1000,
+				stats: function(data){
+					if(!firstRun.ran){
+						firstRun.call(this, data);
+						firstRun.ran = true;
+					}
+
+					$('#song').text(data.songtitle);
+				}
+			});
+
+			$(function(){
+				efn.stats();
+
+				$('#resetSongTitle').click(function(){
+					efn.stopStats().startStats();
+				});
+
+				$('#reloadStream').click(function(){
+					efn.stopStream('#player').playStream('#player');
+				});
+			});
+		</script>
+	</head>
+	<body>
+		<div id="player">
+			<button type="button" id="reloadStream">reload stream</button>
+		</div>
+		<div id="info">
+			<p>Station: <strong id="station"></strong></p>
+			<p>Song: <strong id="song"></strong> <button type="button" id="resetSongTitle">refresh title</button></p>
+		</div>
+	</body>
+</html>
