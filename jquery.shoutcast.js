@@ -19,8 +19,6 @@
 		this.htmlProxy = opt.htmlProxy;
 	}
 
-	this.streamProxy = opt.streamProxy || null;
-
     this._statsinterval = null;
     this._playedinterval = null;
     this._stats = opt.stats || function(){};
@@ -56,12 +54,7 @@
    */
   SHOUTcast.prototype.playStream = function(container){
     if(this.onAir() && this.canPlayStream()){
-		var steamURL = 'http://'+this.host+':'+this.port+this.get('streampath');
-
-		if(this.streamProxy !== null){
-			steamURL = this.streamProxy.replace('%s', encodeURIComponent(steamURL));
-			steamURL = steamURL.replace('%t', encodeURIComponent(this.get('content')));
-		}
+		var steamURL = ('http://'+this.host+':'+this.port+this.get('streampath')).replace(/(\/$)|$/, '/;');
 
 		if($('audio', container).length){
 			$('audio', container).prop('src', steamURL);
