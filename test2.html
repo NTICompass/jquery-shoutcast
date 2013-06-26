@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 	<head>
+		<meta charset='utf-8'>
 		<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
 		<script src="jquery.shoutcast.js"></script>
 		<script>
@@ -24,7 +25,6 @@
 				stream: -1,
 				dataType: 'html',
 				htmlProxy: 'http://tron/SHOUTCast_HTML2JSONP.php?url=%s&callback=?',
-				streamProxy: 'http://tron/SHOUTCast_Stream.php?url=%s&type=%t',
 				statsInterval: 2*60*1000,
 				stats: function(data){
 					if(!firstRun.ran){
